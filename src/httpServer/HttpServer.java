@@ -12,7 +12,7 @@ public class HttpServer {
 	public static void main(String[] args) throws IOException, InterruptedException, ParseException {
 		ServerSettings.init();
 		
-		ServerSocket serverSocket = new ServerSocket(5555);
+		ServerSocket serverSocket = new ServerSocket(8090);
 		serverSocket.setReceiveBufferSize(SocketOptions.SO_RCVBUF * 32);
 		
 		int processors = Runtime.getRuntime().availableProcessors();
