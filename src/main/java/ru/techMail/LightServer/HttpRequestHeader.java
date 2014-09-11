@@ -1,4 +1,4 @@
-package httpServer;
+package ru.techMail.LightServer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
