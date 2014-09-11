@@ -1,0 +1,4 @@
+{
+    "DocumentRoot":"/Users/grigory51/Workspace/tech-mail_light-server/src/test/acceptance/httptest",
+    "DirectoryIndex":"wikipedia_russia.html"
+}

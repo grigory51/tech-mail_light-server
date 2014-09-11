@@ -13,7 +13,7 @@ public final class ServerSettings {
     public static String directoryIndex = "index.html";
 
     public static void init() throws IOException, ParseException {
-        File file = new File(System.getProperty("user.dir") + "/settings.ini");
+        File file = new File(System.getProperty("user.dir") + "/settings.json");
         FileInputStream fileStream = new FileInputStream(file);
         byte[] buffer = new byte[(int) file.length()];
         fileStream.read(buffer);
