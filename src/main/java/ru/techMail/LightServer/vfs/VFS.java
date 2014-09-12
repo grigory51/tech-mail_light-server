@@ -1,6 +1,8 @@
 package ru.techMail.LightServer.vfs;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.HashMap;
 
 public class VFS {
@@ -38,5 +40,10 @@ public class VFS {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    public boolean isDirectory(String relativePath) {
+        File f = new File(this.getAbsolutePath(relativePath));
+        return f.exists() && f.isDirectory();
     }
 }
