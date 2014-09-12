@@ -1,4 +1,4 @@
-package ru.techMail.LightServer.servers;
+package ru.techMail.LightServer.servers.http;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -8,28 +8,32 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import ru.techMail.LightServer.exceptions.RequestException;
 import ru.techMail.LightServer.packets.http.HttpRequest;
 import ru.techMail.LightServer.packets.http.HttpResponse;
 import ru.techMail.LightServer.packets.http.special.BadRequestHttpResponse;
+import ru.techMail.LightServer.packets.http.special.ForbiddenHttpResponse;
 import ru.techMail.LightServer.packets.http.special.NotFoundHttpResponse;
 import ru.techMail.LightServer.packets.http.special.NotImplementedHttpResponse;
+import ru.techMail.LightServer.servers.IServer;
 import ru.techMail.LightServer.settings.ServerSettings;
 import ru.techMail.LightServer.vfs.VFS;
 import ru.techMail.LightServer.vfs.VFSFile;
 
 public class HttpServer implements IServer, Runnable {
-    private ServerSettings serverSettings;
-    private VFS vfs;
+    private final ServerSettings serverSettings;
+    private final VFS vfs;
 
     private ServerSocketChannel serverChannel;
     private Selector selector;
 
-    private Map<SocketChannel, byte[]> writeQueue = new HashMap<>();
-    private Map<SocketChannel, StringBuilder> readQueue = new HashMap<>();
+    private final Map<SocketChannel, ByteBuffer> writeQueue = new HashMap<>();
+    private final ArrayList<HttpWorker> workers = new ArrayList<>();
 
     public HttpServer(ServerSettings serverSettings) {
         this.serverSettings = serverSettings;
@@ -37,18 +41,25 @@ public class HttpServer implements IServer, Runnable {
     }
 
     @Override
-    public void start() throws IOException, InterruptedException {
-        selector = Selector.open();
-        serverChannel = ServerSocketChannel.open();
+    public void start() throws IOException {
+        int workersNumber = Runtime.getRuntime().availableProcessors();
+
+        this.selector = Selector.open();
+        this.serverChannel = ServerSocketChannel.open();
 
         serverChannel.configureBlocking(false);
         serverChannel.socket().bind(new InetSocketAddress(this.serverSettings.getListenHost(), this.serverSettings.getListenPort()));
 
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-        Thread thread = new Thread(this);
-        thread.start();
-        thread.join();
+        for (int i = 0; i < workersNumber; ++i) {
+            HttpWorker worker = new HttpWorker();
+            workers.add(worker);
+            new Thread(worker, "Worker " + i).start();
+        }
+
+        Thread master = new Thread(this, "Master");
+        master.start();
     }
 
     @Override
@@ -60,8 +71,12 @@ public class HttpServer implements IServer, Runnable {
     public void run() {
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                selector.select(10000);
-                for (SelectionKey key : selector.selectedKeys()) {
+                selector.select();
+
+                Iterator<SelectionKey> keyIterator = selector.selectedKeys().iterator();
+
+                while (keyIterator.hasNext()) {
+                    SelectionKey key = keyIterator.next();
                     try {
                         if (key.isValid()) {
                             if (key.isAcceptable()) {
@@ -71,19 +86,18 @@ public class HttpServer implements IServer, Runnable {
                                     socketChannel.configureBlocking(false);
                                     socketChannel.register(selector, SelectionKey.OP_READ);
                                 }
-                            }
-                            if (key.isWritable()) {
+                            } else if (key.isWritable()) {
                                 this.sendResponse(key);
-                            }
-                            if (key.isReadable()) {
+                            } else if (key.isReadable()) {
                                 this.readRequest(key);
                             }
                         }
                     } catch (CancelledKeyException e) {
                         SocketChannel channel = (SocketChannel) key.channel();
-                        readQueue.remove(channel);
                         writeQueue.remove(channel);
                     }
+
+                    keyIterator.remove();
                 }
             }
         } catch (IOException e) {
@@ -104,16 +118,13 @@ public class HttpServer implements IServer, Runnable {
     private void sendResponse(SelectionKey key) {
         SocketChannel channel = (SocketChannel) key.channel();
 
-        byte[] data = writeQueue.get(channel);
-        ByteBuffer byteBuffer = ByteBuffer.wrap(data);
+        ByteBuffer byteBuffer = writeQueue.get(channel);
 
         try {
             channel.write(byteBuffer);
 
-            writeQueue.remove(channel);
-            if (byteBuffer.hasRemaining()) {
-                writeQueue.put(channel, byteBuffer.array());
-            } else {
+            if (byteBuffer.remaining() == 0) {
+                writeQueue.remove(channel);
                 key.cancel();
                 channel.close();
             }
@@ -136,13 +147,21 @@ public class HttpServer implements IServer, Runnable {
                 HttpRequest request = new HttpRequest(new String(data));
 
                 VFSFile file = vfs.getFile(request.getRequestedPath());
-
-                key.interestOps(SelectionKey.OP_WRITE);
                 HttpResponse response;
+
                 if (file != null) {
                     response = new HttpResponse(file);
                 } else {
-                    response = new NotFoundHttpResponse(request.getRequestedPath());
+                    if (vfs.isDirectory(request.getRequestedPath())) {
+                        file = vfs.getFile(request.getRequestedPath() + serverSettings.getIndex());
+                        if (file != null) {
+                            response = new HttpResponse(file);
+                        } else {
+                            response = new ForbiddenHttpResponse();
+                        }
+                    } else {
+                        response = new NotFoundHttpResponse(request.getRequestedPath());
+                    }
                 }
 
                 if (request.isGet()) {
@@ -153,17 +172,19 @@ public class HttpServer implements IServer, Runnable {
                 } else {
                     this.putIntoWriteQueue(channel, new NotImplementedHttpResponse());
                 }
+
+                key.interestOps(SelectionKey.OP_WRITE);
             } else {
                 throw new RequestException();
             }
         } catch (IOException | RequestException e) {
             e.printStackTrace();
-            key.interestOps(SelectionKey.OP_WRITE);
             this.putIntoWriteQueue(channel, new BadRequestHttpResponse());
+            key.interestOps(SelectionKey.OP_WRITE);
         }
     }
 
     private void putIntoWriteQueue(SocketChannel channel, HttpResponse response) {
-        writeQueue.put(channel, response.getBytes());
+        writeQueue.put(channel, ByteBuffer.wrap(response.getBytes()));
     }
 }
