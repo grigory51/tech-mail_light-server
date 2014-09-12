@@ -1,14 +1,25 @@
 package ru.techMail.LightServer.servers;
 
-import ru.techMail.LightServer.settings.ServerSettings;
-import ru.techMail.LightServer.vfs.VFS;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.CancelledKeyException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
+
+import ru.techMail.LightServer.exceptions.RequestException;
+import ru.techMail.LightServer.packets.http.HttpRequest;
+import ru.techMail.LightServer.packets.http.HttpResponse;
+import ru.techMail.LightServer.packets.http.special.BadRequestHttpResponse;
+import ru.techMail.LightServer.packets.http.special.NotFoundHttpResponse;
+import ru.techMail.LightServer.packets.http.special.NotImplementedHttpResponse;
+import ru.techMail.LightServer.settings.ServerSettings;
+import ru.techMail.LightServer.vfs.VFS;
+import ru.techMail.LightServer.vfs.VFSFile;
 
 public class HttpServer implements IServer, Runnable {
     private ServerSettings serverSettings;
@@ -50,7 +61,6 @@ public class HttpServer implements IServer, Runnable {
         try {
             while (!Thread.currentThread().isInterrupted()) {
                 selector.select(10000);
-
                 for (SelectionKey key : selector.selectedKeys()) {
                     try {
                         if (key.isValid()) {
@@ -62,43 +72,11 @@ public class HttpServer implements IServer, Runnable {
                                     socketChannel.register(selector, SelectionKey.OP_READ);
                                 }
                             }
-
                             if (key.isWritable()) {
-                                SocketChannel channel = (SocketChannel) key.channel();
-
-                                byte[] data = writeQueue.get(channel);
-                                writeQueue.remove(channel);
-
-                                channel.write(ByteBuffer.wrap(data));
-
-                                key.cancel();
-                                channel.close();
+                                this.sendResponse(key);
                             }
-
                             if (key.isReadable()) {
-                                SocketChannel channel = (SocketChannel) key.channel();
-                                ByteBuffer readBuffer = ByteBuffer.allocate(2048);
-                                readBuffer.clear();
-                                int read;
-                                try {
-                                    read = channel.read(readBuffer);
-                                    if (read == -1) {
-                                        key.interestOps(SelectionKey.OP_WRITE);
-                                        writeQueue.put(channel, "400".getBytes());
-                                        continue;
-                                    }
-
-                                    readBuffer.flip();
-                                    byte[] data = new byte[2048];
-                                    readBuffer.get(data, 0, read);
-
-                                    String header = new String(data);
-
-
-                                } catch (IOException e) {
-                                    key.interestOps(SelectionKey.OP_WRITE);
-                                    writeQueue.put(channel, "400".getBytes());
-                                }
+                                this.readRequest(key);
                             }
                         }
                     } catch (CancelledKeyException e) {
@@ -123,5 +101,69 @@ public class HttpServer implements IServer, Runnable {
         }
     }
 
+    private void sendResponse(SelectionKey key) {
+        SocketChannel channel = (SocketChannel) key.channel();
 
+        byte[] data = writeQueue.get(channel);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(data);
+
+        try {
+            channel.write(byteBuffer);
+
+            writeQueue.remove(channel);
+            if (byteBuffer.hasRemaining()) {
+                writeQueue.put(channel, byteBuffer.array());
+            } else {
+                key.cancel();
+                channel.close();
+            }
+        } catch (IOException ignored) {
+        }
+    }
+
+    private void readRequest(SelectionKey key) {
+        SocketChannel channel = (SocketChannel) key.channel();
+        ByteBuffer readBuffer = ByteBuffer.allocate(2048);
+        readBuffer.clear();
+        int read;
+        try {
+            read = channel.read(readBuffer);
+            if (read > 0) {
+                readBuffer.flip();
+                byte[] data = new byte[2048];
+                readBuffer.get(data, 0, read);
+
+                HttpRequest request = new HttpRequest(new String(data));
+
+                VFSFile file = vfs.getFile(request.getRequestedPath());
+
+                key.interestOps(SelectionKey.OP_WRITE);
+                HttpResponse response;
+                if (file != null) {
+                    response = new HttpResponse(file);
+                } else {
+                    response = new NotFoundHttpResponse(request.getRequestedPath());
+                }
+
+                if (request.isGet()) {
+                    this.putIntoWriteQueue(channel, response);
+                } else if (request.isHead()) {
+                    response.setBody(null, false);
+                    this.putIntoWriteQueue(channel, response);
+                } else {
+                    this.putIntoWriteQueue(channel, new NotImplementedHttpResponse());
+                }
+            } else {
+                throw new RequestException();
+            }
+        } catch (IOException | RequestException e) {
+            e.printStackTrace();
+            key.interestOps(SelectionKey.OP_WRITE);
+            this.putIntoWriteQueue(channel, new BadRequestHttpResponse());
+        }
+    }
+
+    private void putIntoWriteQueue(SocketChannel channel, HttpResponse response) {
+        writeQueue.put(channel, response.getBytes());
+    }
 }
