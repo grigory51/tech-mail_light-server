@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import ru.techMail.LightServer.packets.http.HttpResponse;
+import ru.techMail.LightServer.utils.StringHelper;
 
 /**
  * kts, 2014
@@ -17,13 +18,9 @@ public class NotFoundHttpResponse extends HttpResponse {
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
-            outputStream.write(("<html><body><p>Not found" + (comment == null ? "" : ": " + comment) + "</p></body></html>").getBytes());
+            outputStream.write(("<html><body><p>Not found" + (comment == null ? "" : ": " + StringHelper.escapeHtml(comment) + "</p></body></html>")).getBytes());
             this.setBody(outputStream.toByteArray());
         } catch (IOException ignore) {
         }
-    }
-
-    public NotFoundHttpResponse() {
-        this(null);
     }
 }
