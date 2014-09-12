@@ -20,6 +20,7 @@ public class HttpRequest {
         }
 
         this.header = new HttpRequestHeader(headerAndBody[0]);
+        this.body = headerAndBody.length == 2 ? headerAndBody[1] : null;
     }
 
     private HttpRequestHeader getHeader() {
