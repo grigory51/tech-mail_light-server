@@ -2,9 +2,12 @@ package ru.techMail.LightServer.headers.http;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+
+import ru.techMail.LightServer.utils.GMTSimpleDateFormat;
 
 /**
  * kts studio, 2014
@@ -12,7 +15,8 @@ import java.util.HashMap;
  * date: 12.09.2014.
  */
 public class HttpResponseHeader {
-    private final static DateFormat dateFormatter = DateFormat.getDateInstance();
+    private final static Calendar calendar = Calendar.getInstance();
+    private final static SimpleDateFormat dateFormatter = new GMTSimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
     private final static HashMap<Integer, String> responseMessage = new HashMap<Integer, String>() {{
         put(200, "Ok");
         put(400, "Bad request");
@@ -21,28 +25,24 @@ public class HttpResponseHeader {
         put(405, "Not implemented");
     }};
 
-    private int status;
-    private Date date;
-    private String server;
+    private final int status;
     private int contentLength;
+    private final String server;
     private String contentType;
-    private String connection;
-
-    public HttpResponseHeader() {
-        this(200);
-    }
+    private final String connection;
+    private final Date date;
 
     public HttpResponseHeader(int status) {
-        this(status, new Date(), "tech-mail.ru server (via g.ozhegov)", 0, "application/octet-stream", "close");
+        this(status, new Date());
     }
 
-    public HttpResponseHeader(int status, Date date, String server, int contentLength, String contentType, String connection) {
+    private HttpResponseHeader(int status, Date date) {
         this.status = status;
         this.date = date;
-        this.server = server;
-        this.contentLength = contentLength;
-        this.contentType = contentType;
-        this.connection = connection;
+        this.server = "tech-mail.ru server (via g.ozhegov)";
+        this.contentLength = 0;
+        this.contentType = "application/octet-stream";
+        this.connection = "close";
     }
 
     public void setContentLength(int contentLength) {
@@ -50,7 +50,6 @@ public class HttpResponseHeader {
     }
 
     public void setContentType(String contentType) {
-
         this.contentType = (contentType == null ? "application/octet-stream" : contentType);
     }
 
