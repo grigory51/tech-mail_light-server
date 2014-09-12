@@ -57,13 +57,13 @@ public class HttpResponseHeader {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
             //todo проверка статуса на null
-            outputStream.write(("HTTP/1.1 " + Integer.toString(status) + " " + responseMessage.get(status) + "\n").getBytes());
-            outputStream.write(("Date: " + dateFormatter.format(date) + "\n").getBytes());
-            outputStream.write(("Server: " + server + "\n").getBytes());
-            outputStream.write(("Content-Length: " + contentLength + "\n").getBytes());
-            outputStream.write(("Content-Type: " + contentType + "\n").getBytes());
-            outputStream.write(("Connection: " + connection + "\n").getBytes());
-            outputStream.write("\n".getBytes());
+            outputStream.write(("HTTP/1.1 " + Integer.toString(status) + " " + responseMessage.get(status) + "\r\n").getBytes());
+            outputStream.write(("Date: " + dateFormatter.format(calendar.getTime()) + "\r\n").getBytes());
+            outputStream.write(("Server: " + server + "\r\n").getBytes());
+            outputStream.write(("Content-Length: " + contentLength + "\r\n").getBytes());
+            outputStream.write(("Content-Type: " + contentType + "\r\n").getBytes());
+            outputStream.write(("Connection: " + connection + "\r\n").getBytes());
+            outputStream.write("\r\n".getBytes());
         } catch (IOException e) {
             return null;
         }
