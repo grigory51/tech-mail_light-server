@@ -70,5 +70,10 @@
             <artifactId>json</artifactId>
             <version>20140107</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>1.4</version>
+        </dependency>
     </dependencies>
 </project>

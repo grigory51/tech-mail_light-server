@@ -1,5 +1,7 @@
 package ru.techMail.LightServer.vfs;
 
+import org.apache.tika.Tika;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,6 +13,8 @@ import java.nio.file.Paths;
  * date: 12.09.2014.
  */
 public class VFSFile {
+    private final static Tika tika = new Tika();
+
     private String mimeType;
     private String path;
     private byte[] content;
@@ -20,10 +24,14 @@ public class VFSFile {
 
         this.path = path;
         this.content = Files.readAllBytes(pathObject);
-        this.mimeType = Files.probeContentType(pathObject);
+
+        this.setMimeType(tika.detect(pathObject.toFile()));
     }
 
-    public String getMimeType() {return mimeType;}
+    public String getMimeType() {
+        return this.mimeType;
+    }
+
 
     public String getPath() {return path;}
 
