@@ -1,5 +1,7 @@
 package ru.techMail.LightServer.headers.http;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,7 +53,12 @@ public class HttpRequestHeader {
     }
 
     private void setPath(String path) {
-        this.path = path;
+        try {
+            this.path = URLDecoder.decode(path, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            this.path = "";
+        }
+    }
 
     private void setArgs(String args) {
         this.args = args;
