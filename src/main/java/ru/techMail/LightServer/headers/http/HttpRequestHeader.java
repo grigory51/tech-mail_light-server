@@ -11,12 +11,13 @@ import ru.techMail.LightServer.exceptions.HeaderException;
  * date: 12.09.2014.
  */
 public class HttpRequestHeader {
-    private final static Pattern firstLine = Pattern.compile("(GET|PUT|POST|DELETE|HEAD)\\s(.*)\\s(\\S+)");
+    private final static Pattern firstLine = Pattern.compile("(GET|PUT|POST|DELETE|HEAD)\\s([^\\?]*)\\??(.*)\\s(\\S+)");
     private final static Pattern field = Pattern.compile("(.*?): (.*?)\\r\\n");
 
     private String method;
     private String path;
     private String httpVersion;
+    private String args;
 
     public HttpRequestHeader(String rawHeader) throws HeaderException {
         String[] splitHeader = rawHeader.split("\n", 2);
@@ -33,7 +34,8 @@ public class HttpRequestHeader {
 
         this.setMethod(firstLineMatcher.group(1));
         this.setPath(firstLineMatcher.group(2));
-        this.setHttpVersion(firstLineMatcher.group(3));
+        this.setArgs(firstLineMatcher.group(3));
+        this.setHttpVersion(firstLineMatcher.group(4));
     }
 
     public String getMethod() {
@@ -50,6 +52,9 @@ public class HttpRequestHeader {
 
     private void setPath(String path) {
         this.path = path;
+
+    private void setArgs(String args) {
+        this.args = args;
     }
 
     private void setHttpVersion(String httpVersion) {
