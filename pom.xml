@@ -25,7 +25,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>ru.techMail.LightServer.HttpServer</mainClass>
+                            <mainClass>ru.techMail.LightServer.Main</mainClass>
                             <classpathPrefix>dependency-jars/</classpathPrefix>
                         </manifest>
                     </archive>
@@ -57,7 +57,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>1.2.1</version>
                 <configuration>
-                    <mainClass>ru.techMail.LightServer.HttpServer</mainClass>
+                    <mainClass>ru.techMail.LightServer.Main</mainClass>
                 </configuration>
             </plugin>
         </plugins>
