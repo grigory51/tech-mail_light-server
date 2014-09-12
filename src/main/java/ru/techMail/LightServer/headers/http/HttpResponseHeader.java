@@ -16,6 +16,7 @@ public class HttpResponseHeader {
     private final static HashMap<Integer, String> responseMessage = new HashMap<Integer, String>() {{
         put(200, "Ok");
         put(400, "Bad request");
+        put(403, "Forbidden");
         put(404, "Not found");
         put(405, "Not implemented");
     }};
