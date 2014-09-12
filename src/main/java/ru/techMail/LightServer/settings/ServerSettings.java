@@ -11,7 +11,7 @@ import java.util.Arrays;
 import ru.techMail.LightServer.exceptions.SettingsException;
 
 public final class ServerSettings {
-    private static String[] allowedServers = {"http"};
+    private static final String[] allowedServers = {"http"};
 
     private String serverType;
     private String root;

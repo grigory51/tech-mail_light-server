@@ -8,7 +8,7 @@ import java.io.IOException;
  * date: 12.09.2014.
  */
 public interface IServer {
-    public void start() throws IOException, InterruptedException;
+    public void start() throws IOException;
 
     public void stop();
 }

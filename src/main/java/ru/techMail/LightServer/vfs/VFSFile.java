@@ -16,7 +16,7 @@ public class VFSFile {
     private final static Tika tika = new Tika();
 
     private String mimeType;
-    private String path;
+    private final String path;
     private byte[] content;
 
     public VFSFile(String path) throws IOException {
@@ -30,10 +30,6 @@ public class VFSFile {
 
     public String getMimeType() {
         return this.mimeType;
-    }
-
-    public String getPath() {
-        return this.path;
     }
 
     public byte[] getContent() {

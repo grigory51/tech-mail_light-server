@@ -5,6 +5,6 @@ package ru.techMail.LightServer.log;
  * author: grigory
  * date: 12.09.2014.
  */
-public class Log {
+class Log {
 
 }

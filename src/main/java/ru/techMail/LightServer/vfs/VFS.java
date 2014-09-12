@@ -4,18 +4,20 @@ import java.io.IOException;
 import java.util.HashMap;
 
 public class VFS {
-    private HashMap<String, VFSFile> memoryCache;
-    private boolean memoryCacheEnabled;
-    private String root;
+    private final HashMap<String, VFSFile> memoryCache;
+    private final boolean memoryCacheEnabled;
+    private final String root;
 
-    public VFS(String root, boolean memoryCacheEnabled) {
+    public VFS(String root) {
+        this(root, true);
+    }
+
+    private VFS(String root, boolean memoryCacheEnabled) {
         this.memoryCache = new HashMap<>();
         this.root = root;
         this.memoryCacheEnabled = memoryCacheEnabled;
     }
 
-    public VFS(String root) {
-        this(root, true);
     private String getAbsolutePath(String relativePath) {
         return this.root + Paths.get(relativePath).normalize();
     }

@@ -10,7 +10,7 @@ import ru.techMail.LightServer.headers.http.HttpRequestHeader;
  * Time: 12:07
  */
 public class HttpRequest {
-    HttpRequestHeader header;
+    private HttpRequestHeader header;
     String body;
 
     public HttpRequest(String content) throws RequestException {
@@ -22,7 +22,7 @@ public class HttpRequest {
         this.header = new HttpRequestHeader(headerAndBody[0]);
     }
 
-    public HttpRequestHeader getHeader() {
+    private HttpRequestHeader getHeader() {
         return this.header;
     }
 
