@@ -1,4 +1,6 @@
 {
-    "DocumentRoot":"/Users/grigory51/Workspace/tech-mail_light-server/src/test/acceptance/httptest",
-    "DirectoryIndex":"wikipedia_russia.html"
+    "listenHost": "127.0.0.1",
+    "listenPort": 8080,
+    "root":"src/test/acceptance/httptest",
+    "index":"wikipedia_russia.html"
 }
