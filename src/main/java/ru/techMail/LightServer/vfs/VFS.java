@@ -16,10 +16,13 @@ public class VFS {
 
     public VFS(String root) {
         this(root, true);
+    private String getAbsolutePath(String relativePath) {
+        return this.root + Paths.get(relativePath).normalize();
     }
 
     public VFSFile getFile(String relativePath) {
-        String path = this.root + relativePath;
+        String path = this.getAbsolutePath(relativePath);
+
         if (memoryCacheEnabled && this.memoryCache.containsKey(path)) {
             return memoryCache.get(path);
         }
