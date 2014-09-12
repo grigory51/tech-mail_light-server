@@ -2,12 +2,13 @@ package ru.techMail.LightServer.settings;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import ru.techMail.LightServer.exceptions.SettingsException;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+
+import ru.techMail.LightServer.exceptions.SettingsException;
 
 public final class ServerSettings {
     private static String[] allowedServers = {"http"};
@@ -55,13 +56,23 @@ public final class ServerSettings {
         }
     }
 
-    public String getRoot() {return this.root;}
+    public String getRoot() {
+        return this.root;
+    }
 
-    public String getIndex() {return this.index;}
+    public String getIndex() {
+        return this.index;
+    }
 
-    public String getListenHost() {return listenHost;}
+    public String getListenHost() {
+        return listenHost;
+    }
 
-    public int getListenPort() {return listenPort;}
+    public int getListenPort() {
+        return listenPort;
+    }
 
-    public String getServerType() {return serverType;}
+    public String getServerType() {
+        return serverType;
+    }
 }

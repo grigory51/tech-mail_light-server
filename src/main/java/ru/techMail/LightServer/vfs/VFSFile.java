@@ -32,8 +32,15 @@ public class VFSFile {
         return this.mimeType;
     }
 
+    public String getPath() {
+        return this.path;
+    }
 
-    public String getPath() {return path;}
+    public byte[] getContent() {
+        return this.content;
+    }
 
-    public byte[] getContent() {return content;}
+    private void setMimeType(String mimeType) {
+        this.mimeType = (mimeType == null ? "application/octet-stream" : mimeType);
+    }
 }

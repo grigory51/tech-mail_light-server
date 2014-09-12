@@ -5,4 +5,5 @@ package ru.techMail.LightServer.exceptions;
  * author: grigory
  * date: 12.09.2014.
  */
-public abstract class AbstractException extends Throwable {}
+public abstract class AbstractException extends Throwable {
+}

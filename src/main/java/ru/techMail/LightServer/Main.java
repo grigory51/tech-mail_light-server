@@ -1,11 +1,11 @@
 package ru.techMail.LightServer;
 
+import java.io.IOException;
+
 import ru.techMail.LightServer.exceptions.SettingsException;
 import ru.techMail.LightServer.servers.HttpServer;
 import ru.techMail.LightServer.servers.IServer;
 import ru.techMail.LightServer.settings.ServerSettings;
-
-import java.io.IOException;
 
 /**
  * kts studio, 2014
