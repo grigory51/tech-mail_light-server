@@ -20,9 +20,11 @@ public class VFSFile {
     private byte[] content;
 
     public VFSFile(String path) throws IOException {
-        Path pathObject = Paths.get(path);
+        this(Paths.get(path));
+    }
 
-        this.path = path;
+    private VFSFile(Path pathObject) throws IOException {
+        this.path = pathObject.toString();
         this.content = Files.readAllBytes(pathObject);
 
         this.setMimeType(tika.detect(pathObject.toFile()));
