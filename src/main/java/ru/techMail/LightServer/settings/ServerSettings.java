@@ -19,11 +19,6 @@ public final class ServerSettings {
     private String listenHost;
     private int listenPort;
 
-    @Deprecated
-    public ServerSettings() throws SettingsException {
-        this(System.getProperty("config", System.getProperty("user.dir") + "/settings.json"));
-    }
-
     public ServerSettings(String configPath) throws SettingsException {
         String configRawString;
         JSONObject jsonSettings;

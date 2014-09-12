@@ -15,7 +15,9 @@ import ru.techMail.LightServer.settings.ServerSettings;
 public class Main {
     public static void main(String[] args) throws SettingsException, IOException, InterruptedException {
         IServer server = null;
-        ServerSettings serverSettings = new ServerSettings();
+
+        String configPath = System.getProperty("config", System.getProperty("user.dir") + "/settings.json");
+        ServerSettings serverSettings = new ServerSettings(configPath);
 
         if (serverSettings.getServerType().equals("http")) {
             server = new HttpServer(serverSettings);
