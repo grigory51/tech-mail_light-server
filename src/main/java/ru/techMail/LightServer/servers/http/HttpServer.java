@@ -9,41 +9,37 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import ru.techMail.LightServer.exceptions.RequestException;
-import ru.techMail.LightServer.packets.http.HttpRequest;
 import ru.techMail.LightServer.packets.http.HttpResponse;
 import ru.techMail.LightServer.packets.http.special.BadRequestHttpResponse;
-import ru.techMail.LightServer.packets.http.special.ForbiddenHttpResponse;
-import ru.techMail.LightServer.packets.http.special.NotFoundHttpResponse;
-import ru.techMail.LightServer.packets.http.special.NotImplementedHttpResponse;
 import ru.techMail.LightServer.servers.IServer;
 import ru.techMail.LightServer.settings.ServerSettings;
-import ru.techMail.LightServer.vfs.VFS;
-import ru.techMail.LightServer.vfs.VFSFile;
 
 public class HttpServer implements IServer, Runnable {
     private final ServerSettings serverSettings;
-    private final VFS vfs;
+    private final int workersNumber;
 
     private ServerSocketChannel serverChannel;
     private Selector selector;
 
-    private final Map<SocketChannel, ByteBuffer> writeQueue = new HashMap<>();
+    private final Map<SocketChannel, ByteBuffer> writeQueue = new ConcurrentHashMap<>();
     private final ArrayList<HttpWorker> workers = new ArrayList<>();
 
     public HttpServer(ServerSettings serverSettings) {
         this.serverSettings = serverSettings;
-        this.vfs = new VFS(serverSettings.getRoot());
+        this.workersNumber = Runtime.getRuntime().availableProcessors();
+    }
+
+    public ServerSettings getSettings() {
+        return this.serverSettings;
     }
 
     @Override
     public void start() throws IOException {
-        int workersNumber = Runtime.getRuntime().availableProcessors();
-
         this.selector = Selector.open();
         this.serverChannel = ServerSocketChannel.open();
 
@@ -52,8 +48,8 @@ public class HttpServer implements IServer, Runnable {
 
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
-        for (int i = 0; i < workersNumber; ++i) {
-            HttpWorker worker = new HttpWorker();
+        for (int i = 0; i < this.workersNumber; ++i) {
+            HttpWorker worker = new HttpWorker(this);
             workers.add(worker);
             new Thread(worker, "Worker " + i).start();
         }
@@ -65,6 +61,21 @@ public class HttpServer implements IServer, Runnable {
     @Override
     public void stop() {
 
+    }
+
+    public void returnAsyncResultFromWorker(SelectionKey key, HttpResponse value) {
+        SocketChannel channel = (SocketChannel) key.channel();
+        try {
+            this.putIntoWriteQueue(channel, value);
+            key.interestOps(SelectionKey.OP_WRITE);
+        } catch (CancelledKeyException e) {
+            try {
+                writeQueue.remove(channel);
+                channel.close();
+                key.cancel();
+            } catch (IOException ignored) {
+            }
+        }
     }
 
     @Override
@@ -96,7 +107,6 @@ public class HttpServer implements IServer, Runnable {
                         SocketChannel channel = (SocketChannel) key.channel();
                         writeQueue.remove(channel);
                     }
-
                     keyIterator.remove();
                 }
             }
@@ -117,12 +127,9 @@ public class HttpServer implements IServer, Runnable {
 
     private void sendResponse(SelectionKey key) {
         SocketChannel channel = (SocketChannel) key.channel();
-
         ByteBuffer byteBuffer = writeQueue.get(channel);
-
         try {
             channel.write(byteBuffer);
-
             if (byteBuffer.remaining() == 0) {
                 writeQueue.remove(channel);
                 key.cancel();
@@ -144,36 +151,11 @@ public class HttpServer implements IServer, Runnable {
                 byte[] data = new byte[2048];
                 readBuffer.get(data, 0, read);
 
-                HttpRequest request = new HttpRequest(new String(data));
-
-                VFSFile file = vfs.getFile(request.getRequestedPath());
-                HttpResponse response;
-
-                if (file != null) {
-                    response = new HttpResponse(file);
-                } else {
-                    if (vfs.isDirectory(request.getRequestedPath())) {
-                        file = vfs.getFile(request.getRequestedPath() + serverSettings.getIndex());
-                        if (file != null) {
-                            response = new HttpResponse(file);
-                        } else {
-                            response = new ForbiddenHttpResponse();
-                        }
-                    } else {
-                        response = new NotFoundHttpResponse(request.getRequestedPath());
-                    }
+                try {
+                    this.workers.get(key.hashCode() % this.workersNumber).handleRequest(key, new String(data));
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-
-                if (request.isGet()) {
-                    this.putIntoWriteQueue(channel, response);
-                } else if (request.isHead()) {
-                    response.setBody(null, false);
-                    this.putIntoWriteQueue(channel, response);
-                } else {
-                    this.putIntoWriteQueue(channel, new NotImplementedHttpResponse());
-                }
-
-                key.interestOps(SelectionKey.OP_WRITE);
             } else {
                 throw new RequestException();
             }
