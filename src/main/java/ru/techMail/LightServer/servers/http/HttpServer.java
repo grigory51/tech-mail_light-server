@@ -33,7 +33,6 @@ public class HttpServer implements IServer, Runnable {
     private Selector selector;
 
     private final Map<SocketChannel, ByteBuffer> writeQueue = new HashMap<>();
-    private final ArrayList<HttpWorker> workers = new ArrayList<>();
 
     public HttpServer(ServerSettings serverSettings) {
         this.serverSettings = serverSettings;
@@ -42,8 +41,6 @@ public class HttpServer implements IServer, Runnable {
 
     @Override
     public void start() throws IOException {
-        int workersNumber = Runtime.getRuntime().availableProcessors();
-
         this.selector = Selector.open();
         this.serverChannel = ServerSocketChannel.open();
 
@@ -51,12 +48,6 @@ public class HttpServer implements IServer, Runnable {
         serverChannel.socket().bind(new InetSocketAddress(this.serverSettings.getListenHost(), this.serverSettings.getListenPort()));
 
         serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-
-        for (int i = 0; i < workersNumber; ++i) {
-            HttpWorker worker = new HttpWorker();
-            workers.add(worker);
-            new Thread(worker, "Worker " + i).start();
-        }
 
         Thread master = new Thread(this, "Master");
         master.start();
