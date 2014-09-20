@@ -59,6 +59,11 @@
                 <version>1.2.1</version>
                 <configuration>
                     <mainClass>ru.techMail.LightServer.Main</mainClass>
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>-XX:+UnlockCommercialFeatures</argument>
+                        <argument>-XX:+FlightRecorder</argument>
+                    </arguments>
                 </configuration>
             </plugin>
         </plugins>
