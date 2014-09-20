@@ -1,0 +1,4 @@
+[submodule "src/test/acceptance"]
+	path = src/test/acceptance
+	url = https://github.com/init/http-test-suite.git
+	branch = master
